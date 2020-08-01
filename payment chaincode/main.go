@@ -58,6 +58,8 @@ func (t *paymentChaincode) Invoke(stub shim.ChaincodeStubInterface) peer.Respons
 		return payment(stub, args)
 	case "delete":
 		return del(stub, args)
+	case "set":
+		return set(stub, args)
 	default:
 		return shim.Error("invalid function name...")
 	}
@@ -70,7 +72,7 @@ func find(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 	}
 	// 获取余额并检查错误
 	result, err := stub.GetState(args[0])
-	if checkError(err) || result == nil {
+	if checkError(err) {
 		return shim.Error("Error while getting state...")
 	}
 	return shim.Success(result)
@@ -115,6 +117,28 @@ func del(stub shim.ChaincodeStubInterface, args []string) peer.Response {
 		return shim.Error("Error while deleting state...")
 	}
 	return shim.Success([]byte("delete success!"))
+}
+
+func set(stub shim.ChaincodeStubInterface, args []string) peer.Response {
+	// 需要账号名和增加/减少的金额
+	if len(args) != 2 {
+		return shim.Error("len(args) must be 2 when use set function")
+	}
+	result, err := stub.GetState(args[0])
+	if checkError(err) {
+		return shim.Error("Error while getting state...")
+	}
+	resultInt, _ := strconv.Atoi(string(result))
+	changeInt, err := strconv.Atoi(args[1])
+	if checkError(err) {
+		return shim.Error("Error while parsing args[1]")
+	}
+	resultInt += changeInt
+	err = stub.PutState(args[0], []byte(strconv.Itoa(resultInt)))
+	if checkError(err) {
+		return shim.Error("Error while changing state...")
+	}
+	return shim.Success([]byte(strconv.Itoa(resultInt)))
 }
 
 func main() {
